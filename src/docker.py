@@ -24,7 +24,7 @@
 
 
 import logging
-from typing import Optional
+from typing import Optional, List
 
 from .config import ApplicationSettings
 from .config import SETTINGS_KEY_DOCKER_ENDPOINT, DEFAULT_INVALID_CHARS_DOCKER_NAME
@@ -45,6 +45,7 @@ def is_valid_docker_host(url: str) -> bool:
     try:
         logging.info(f"Verifying connectivity to DOCKER_HOST={url}")
         import docker
+
         cli = docker.DockerClient(base_url=url)
         _ = cli.info()
     except Exception as e:
@@ -59,7 +60,10 @@ class DockerController(object):
         self._client = None
         self._settings = settings
         self._recreate_client()
-        settings.connect(f"changed::{SETTINGS_KEY_DOCKER_ENDPOINT}", lambda s, k: self._recreate_client())
+        settings.connect(
+            f"changed::{SETTINGS_KEY_DOCKER_ENDPOINT}",
+            lambda s, k: self._recreate_client(),
+        )
 
     def _recreate_client(self):
         try:
@@ -67,12 +71,15 @@ class DockerController(object):
             logging.info(f"Creating/recreating docker client with DOCKER_HOST={dh}")
 
             import docker
+
             self._client = docker.DockerClient(base_url=dh)
             info = self._client.info()
         except Exception as e:
-            show_notification(f"Could not connect to Docker at\n{dh}:\n{e}",
-                              header="Could not connect to Docker daemon",
-                              icon="dialog-error")
+            show_notification(
+                f"Could not connect to Docker at\n{dh}:\n{e}",
+                header="Could not connect to Docker daemon",
+                icon="dialog-error",
+            )
             self._client = None
 
     @property
@@ -91,7 +98,8 @@ class DockerController(object):
 
     def get_container_by_name(self, name: str) -> Optional[str]:
         """
-        Return the container with the given name, or None if it could not be found.
+        Return the container with the given name,
+        or None if it could not be found.
         """
         if self._client is not None:
             for c in self._client.containers.list():
@@ -105,7 +113,7 @@ class DockerController(object):
 
         The network will be something like 'k3d-k3s-cluster-690'
         """
-        return container.attrs['Created']
+        return container.attrs["Created"]
 
     def get_container_ip(self, container, network_name: str) -> str:
         """
@@ -113,7 +121,13 @@ class DockerController(object):
 
         The network will be something like 'k3d-k3s-cluster-690'
         """
-        return container.attrs['NetworkSettings']['Networks'][network_name]['IPAddress']
+        return container.attrs["NetworkSettings"]["Networks"][network_name]["IPAddress"]
+
+    def get_container_networks(self, container) -> List[str]:
+        """
+        Return the container networks
+        """
+        return container.attrs["NetworkSettings"]["Networks"].keys()
 
     def get_official_k3s_images(self):
         # should return the same as https://hub.docker.com/r/rancher/k3s/tags

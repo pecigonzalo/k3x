@@ -48,7 +48,9 @@ def get_chart_dir_for(owner: str) -> str:
     """
     Get (and create) a directory for storying Helm charts for some cluster
     """
-    res = os.path.abspath(os.path.join(ApplicationSettings.get_cache_dir(), "helm", owner))
+    res = os.path.abspath(
+        os.path.join(ApplicationSettings.get_cache_dir(), "helm", owner)
+    )
     os.makedirs(res, exist_ok=True)
     return res
 
@@ -76,10 +78,16 @@ class HelmChart(object):
 
     # see https://rancher.com/docs/k3s/latest/en/helm/
 
-    def __init__(self, name: str, chart: str, namespace: str = "default",
-                 repo: Optional[str] = None, version: Optional[str] = None,
-                 values=None,
-                 extra_manifests=None):
+    def __init__(
+        self,
+        name: str,
+        chart: str,
+        namespace: str = "default",
+        repo: Optional[str] = None,
+        version: Optional[str] = None,
+        values=None,
+        extra_manifests=None,
+    ):
 
         if extra_manifests is None:
             extra_manifests = []
@@ -102,15 +110,12 @@ class HelmChart(object):
         chart_contents = {
             "apiVersion": "helm.cattle.io/v1",
             "kind": "HelmChart",
-            "metadata": {
-                "name": self.name,
-                "namespace": "kube-system",
-            },
+            "metadata": {"name": self.name, "namespace": "kube-system",},
             "spec": {
                 "chart": self.chart,
                 "set": {},
                 "targetNamespace": self.namespace,
-            }
+            },
         }
 
         if self.version:
@@ -122,7 +127,7 @@ class HelmChart(object):
         if self.values:
             chart_contents["spec"]["set"] = self.values
 
-        with open(self.file, 'w') as outfile:
+        with open(self.file, "w") as outfile:
             logging.debug(f"[CHART] Saving YAML file for {self.name} in {self.file}")
             outfile.write("---\n")
             yaml.dump(chart_contents, outfile)
@@ -131,7 +136,7 @@ class HelmChart(object):
                 outfile.write("\n---\n")
                 outfile.write(manifest + "\n")
 
-        with open(self.file, 'r') as infile:
+        with open(self.file, "r") as infile:
             logging.debug(f"[CHART] Chart file contents on {self.file}")
             lines = infile.readlines()
             for line in lines:
@@ -150,16 +155,18 @@ class HelmChartKubernetesDashboard(HelmChart):
 
     def __init__(self):
         # see https://github.com/helm/charts/tree/master/stable/kubernetes-dashboard
-        super().__init__(name="dashboard",
-                         chart="stable/kubernetes-dashboard",
-                         namespace="kube-system",
-                         values={
-                             "enableSkipLogin": "true",
-                             "enableInsecureLogin": "true",
-                             "ingress.enabled": "true",
-                             # https://docs.traefik.io/v1.7/configuration/backends/kubernetes/#annotations
-                             r"ingress.annotations.kubernetes\.io/ingress\.class": "traefik",
-                         })
+        super().__init__(
+            name="dashboard",
+            chart="stable/kubernetes-dashboard",
+            namespace="kube-system",
+            values={
+                "enableSkipLogin": "true",
+                "enableInsecureLogin": "true",
+                "ingress.enabled": "true",
+                # https://docs.traefik.io/v1.7/configuration/backends/kubernetes/#annotations
+                r"ingress.annotations.kubernetes\.io/ingress\.class": "traefik",
+            },
+        )
 
 
 class HelmChartRancher(HelmChart):
@@ -192,17 +199,15 @@ spec:
 
     def __init__(self):
         # see https://rancher.com/docs/rancher/v2.x/en/installation/k8s-install/helm-rancher/
-        super().__init__(name="rancher",
-                         chart="rancher",
-                         repo="https://releases.rancher.com/server-charts/latest",
-                         namespace="kube-system",
-                         # see https://rancher.com/docs/rancher/v2.x/en/installation/options/chart-options/
-                         values={
-                             "addLocal": "true",
-                             "tls": "external",
-                         },
-                         extra_manifests=[self.ingress_manifest],
-                         )
+        super().__init__(
+            name="rancher",
+            chart="rancher",
+            repo="https://releases.rancher.com/server-charts/latest",
+            namespace="kube-system",
+            # see https://rancher.com/docs/rancher/v2.x/en/installation/options/chart-options/
+            values={"addLocal": "true", "tls": "external",},
+            extra_manifests=[self.ingress_manifest],
+        )
 
 
 def get_charts_for_cluster(cluster_view):

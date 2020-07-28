@@ -38,22 +38,19 @@ CURR_DIR = os.path.dirname(os.path.realpath(__file__))
 APP_TITLE = "k3x"
 APP_ID = f"com.github.inercia.{APP_TITLE}"
 APP_DESCRIPTION = "A k3d manager"
-APP_MAIN_AUTHORS = [
-    "Alvaro Saurin <alvaro.saurin@gmail.com>"
-]
+APP_MAIN_AUTHORS = ["Alvaro Saurin <alvaro.saurin@gmail.com>"]
 
 # NOTE: icons copied to the flatpak are not accessible in the indicator: they
 #       are confined in the flatpak container.
 APP_ICON_NAME = APP_ID
 APP_ICON_PATH = os.path.join(
-    '/app', 'share', 'icons', 'hicolor', '128x128', 'apps', APP_ID + ".svg")
+    "/app", "share", "icons", "hicolor", "128x128", "apps", APP_ID + ".svg"
+)
 
 # ,prefix for all the environment variables we export
 APP_ENV_PREFIX = "K3X"
 
-APP_DOCUMENTERS = [
-    "Alvaro Saurin <alvaro.saurin@gmail.com>"
-]
+APP_DOCUMENTERS = ["Alvaro Saurin <alvaro.saurin@gmail.com>"]
 APP_URL = "http://github.com/inercia/k3x"
 APP_COPYRIGHT = f"""
 Copyright (c) 2020 {APP_MAIN_AUTHORS}
@@ -113,6 +110,7 @@ SETTINGS_KEY_DESTROY_HOOK = "cluster-destroy-hook"
 # settings
 ###############################################################################
 
+
 class ApplicationSettings(object):
     """
     The settings class
@@ -129,13 +127,13 @@ class ApplicationSettings(object):
         """
         Get a string but stripping any quotes
         """
-        return str(self._settings.get_string(key)).strip("\'").strip("\"")
+        return str(self._settings.get_string(key)).strip("'").strip('"')
 
     def get_safe_default_string(self, key: str) -> str:
         """
         Get the default string but stripping any quotes
         """
-        return str(self._settings.get_default_value(key)).strip("\'").strip("\"")
+        return str(self._settings.get_default_value(key)).strip("'").strip('"')
 
     def get_keybinding(self, key: str) -> str:
         """
@@ -205,7 +203,9 @@ class ApplicationSettings(object):
         dst = None
         if path:
             extension = os.path.splitext(path)[1]
-            dst = os.path.join(ApplicationSettings.get_cache_dir(), "icons", "app" + extension)
+            dst = os.path.join(
+                ApplicationSettings.get_cache_dir(), "icons", "app" + extension
+            )
             dst = os.path.abspath(dst)
         return dst
 
@@ -258,7 +258,9 @@ DEFAULT_K3D_WAIT_TIME = 60
 DEFAULT_K3D_LIST_UPDATE_INTERVAL = 10000
 
 # the autostart desktop file
-DEFAULT_AUTOSTART_ENTRY_FILE = os.path.join(ApplicationSettings.get_autostart_dir(), "k3x.desktop")
+DEFAULT_AUTOSTART_ENTRY_FILE = os.path.join(
+    ApplicationSettings.get_autostart_dir(), "k3x.desktop"
+)
 
 # port range for assigning random ports to the API server
 DEFAULT_API_SERVER_PORT_RANGE = (6500, 7500)

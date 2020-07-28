@@ -32,16 +32,20 @@ from gi.repository import GObject
 
 from .config import APP_ENV_PREFIX
 from .config import ApplicationSettings
-from .config import (DEFAULT_EXTRA_PATH,
-                     DEFAULT_API_SERVER_PORT_RANGE,
-                     DEFAULT_K3D_WAIT_TIME)
+from .config import (
+    DEFAULT_EXTRA_PATH,
+    DEFAULT_API_SERVER_PORT_RANGE,
+    DEFAULT_K3D_WAIT_TIME,
+)
 from .docker import DockerController
 from .helm import HelmChart, cleanup_for_owner
-from .utils import (call_in_main_thread,
-                    find_unused_port_in_range,
-                    parse_or_get_address,
-                    find_executable,
-                    run_command_stdout)
+from .utils import (
+    call_in_main_thread,
+    find_unused_port_in_range,
+    parse_or_get_address,
+    find_executable,
+    run_command_stdout,
+)
 from .utils_ui import show_notification
 
 # the header/footer length in the "k3d list" output
@@ -72,47 +76,56 @@ def run_k3d_command(*args, **kwargs) -> Iterator[str]:
 
 class K3dError(Exception):
     """Base class for other k3d exceptions"""
+
     pass
 
 
 class EmptyClusterNameError(K3dError):
     """No cluster name"""
+
     pass
 
 
 class InvalidNumWorkersError(K3dError):
     """Invalid num workers"""
+
     pass
 
 
 class ClusterCreationError(K3dError):
     """Cluster creation error"""
+
     pass
 
 
 class ClusterDestructionError(K3dError):
     """Cluster destruction error"""
+
     pass
 
 
 class ClusterNotFoundError(K3dError):
     """Cluster not found error"""
+
     pass
 
 
 class NoKubeconfigObtainedError(K3dError):
     """No kubeconfig obtained error"""
+
     pass
 
 
 class NoServerError(K3dError):
     """No Docker server error"""
+
     pass
 
 
 ###############################################################################
 # k3d clusters
 ###############################################################################
+
 
 class K3dCluster(GObject.GObject):
     name: str = ""
@@ -132,12 +145,13 @@ class K3dCluster(GObject.GObject):
     __gsignals__ = {
         # a signal emmited when the cluster has been created
         "created": (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, (str,)),
-
         # a signal emmited when the cluster has been destroyed
-        "destroyed": (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, (str,))
+        "destroyed": (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, (str,)),
     }
 
-    def __init__(self, settings: ApplicationSettings, docker: DockerController, **kwargs):
+    def __init__(
+        self, settings: ApplicationSettings, docker: DockerController, **kwargs
+    ):
         super().__init__()
         self._docker = docker
         self._settings = settings
@@ -232,7 +246,9 @@ class K3dCluster(GObject.GObject):
             args += [f"--volume={src}:{dst}"]
 
         # use the given API port or find an unused one
-        self.api_server = parse_or_get_address(self.api_server, *DEFAULT_API_SERVER_PORT_RANGE)
+        self.api_server = parse_or_get_address(
+            self.api_server, *DEFAULT_API_SERVER_PORT_RANGE
+        )
         logging.info(f"[K3D] Using API address {self.api_server}")
         args += [f"--api-port={self.api_server}"]
 
@@ -240,7 +256,9 @@ class K3dCluster(GObject.GObject):
         docker_host = self._docker.docker_host
         default_docker_host = self._docker.default_docker_host
         if docker_host != self._docker.default_docker_host:
-            logging.debug(f"[K3D] Overriding DOCKER_HOST={docker_host} (!= {default_docker_host})")
+            logging.debug(
+                f"[K3D] Overriding DOCKER_HOST={docker_host} (!= {default_docker_host})"
+            )
             new_env = os.environ.copy()
             new_env["DOCKER_HOST"] = docker_host
             kwargs["env"] = new_env
@@ -278,7 +296,9 @@ class K3dCluster(GObject.GObject):
             raise EmptyClusterNameError()
 
         if self._destroyed:
-            raise ClusterDestructionError("Trying to destroy an already destroyed cluster")
+            raise ClusterDestructionError(
+                "Trying to destroy an already destroyed cluster"
+            )
 
         args = []
         args += [f"--name={self.name}"]
@@ -314,14 +334,20 @@ class K3dCluster(GObject.GObject):
         if not self._kubeconfig:
             for _ in range(0, 20):
                 try:
-                    line = next(run_k3d_command("get-kubeconfig", f"--name={self.name}"))
+                    line = next(
+                        run_k3d_command("get-kubeconfig", f"--name={self.name}")
+                    )
                 except StopIteration:
                     break
                 except subprocess.CalledProcessError:
-                    logging.debug(f"[K3D] ... KUBECONFIG for {self.name} not ready yet...")
+                    logging.debug(
+                        f"[K3D] ... KUBECONFIG for {self.name} not ready yet..."
+                    )
                     time.sleep(1)
                 else:
-                    logging.debug(f"[K3D] ... obtained KUBECONFIG for {self.name} at {line}")
+                    logging.debug(
+                        f"[K3D] ... obtained KUBECONFIG for {self.name} at {line}"
+                    )
                     self._kubeconfig = line
                     break
 
@@ -399,7 +425,8 @@ class K3dCluster(GObject.GObject):
                 ip = self._docker.get_container_ip(c, self.docker_network_name)
                 if ip is None:
                     raise NoServerError(
-                        f"could not obtain server IP for {self.docker_server_name} in network {self.docker_network_name}")
+                        f"could not obtain server IP for {self.docker_server_name} in network {self.docker_network_name}"
+                    )
                 self._docker_server_ip = ip
 
         return self._docker_server_ip
@@ -426,6 +453,7 @@ class K3dCluster(GObject.GObject):
 
     def open_dashboard(self, *args) -> None:
         import webbrowser
+
         u = self.dashboard_url
         if u is not None:
             logging.debug(f"[K3D] Opening '{u}' in default web browser")
@@ -433,16 +461,30 @@ class K3dCluster(GObject.GObject):
         else:
             logging.warning(f"[K3D] No URL to open")
 
-    def show_notification(self, msg, header: str = None, icon: str = None,
-                          timeout: Optional[int] = None,
-                          action: Optional[Tuple[str, Callable]] = None):
+    def show_notification(
+        self,
+        msg,
+        header: str = None,
+        icon: str = None,
+        timeout: Optional[int] = None,
+        action: Optional[Tuple[str, Callable]] = None,
+    ):
         """
         Show a notification specific for this cluster.
         The notification will be saved and next invocations will show as "updates"
         """
+
         def do_notify():
-            self._notification = show_notification(msg=msg, header=header, timeout=timeout, action=action, icon=icon,
-                                                   notification=self._notification, threaded=False)
+            self._notification = show_notification(
+                msg=msg,
+                header=header,
+                timeout=timeout,
+                action=action,
+                icon=icon,
+                notification=self._notification,
+                threaded=False,
+            )
+
         call_in_main_thread(do_notify)
 
     @property
@@ -456,13 +498,25 @@ class K3dCluster(GObject.GObject):
         }
 
         if not self._destroyed:
-            env.update({
-                f"{APP_ENV_PREFIX}_REGISTRY_ENABLED": "1" if self.use_registry else "",
-                f"{APP_ENV_PREFIX}_REGISTRY_NAME": str(self.registry_name) if self.registry_name else "",
-                f"{APP_ENV_PREFIX}_REGISTRY_PORT": str(self.registry_port) if self.registry_port else "",
-                f"{APP_ENV_PREFIX}_MASTER_IP": str(self.docker_server_ip) if self.docker_server_ip is not None else "",
-                f"{APP_ENV_PREFIX}_KUBECONFIG": self.kubeconfig if self.kubeconfig is not None else "",
-            })
+            env.update(
+                {
+                    f"{APP_ENV_PREFIX}_REGISTRY_ENABLED": "1"
+                    if self.use_registry
+                    else "",
+                    f"{APP_ENV_PREFIX}_REGISTRY_NAME": str(self.registry_name)
+                    if self.registry_name
+                    else "",
+                    f"{APP_ENV_PREFIX}_REGISTRY_PORT": str(self.registry_port)
+                    if self.registry_port
+                    else "",
+                    f"{APP_ENV_PREFIX}_MASTER_IP": str(self.docker_server_ip)
+                    if self.docker_server_ip is not None
+                    else "",
+                    f"{APP_ENV_PREFIX}_KUBECONFIG": self.kubeconfig
+                    if self.kubeconfig is not None
+                    else "",
+                }
+            )
 
         return env
 

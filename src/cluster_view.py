@@ -29,35 +29,34 @@ from typing import Optional
 
 from gi.repository import Granite, Gtk, Gdk
 
-from .config import (APP_ID,
-                     DEFAULT_API_SERVER,
-                     SETTINGS_KEY_REG_VOL,
-                     SETTINGS_KEY_REG_MODE,
-                     SETTINGS_KEY_REG_ADDRESS,
-                     SETTINGS_KEY_CREATE_HOOK,
-                     SETTINGS_KEY_DESTROY_HOOK,
-                     SETTINGS_KEY_K3D_IMAGE,
-                     SETTINGS_KEY_K3S_ARGS)
+from .config import (
+    APP_ID,
+    DEFAULT_API_SERVER,
+    SETTINGS_KEY_REG_VOL,
+    SETTINGS_KEY_REG_MODE,
+    SETTINGS_KEY_REG_ADDRESS,
+    SETTINGS_KEY_CREATE_HOOK,
+    SETTINGS_KEY_DESTROY_HOOK,
+    SETTINGS_KEY_K3D_IMAGE,
+    SETTINGS_KEY_K3S_ARGS,
+)
 from .config import ApplicationSettings
-from .config import (DEFAULT_CLUSTER_VIEW_WIDTH,
-                     DEFAULT_CLUSTER_VIEW_HEIGHT)
+from .config import DEFAULT_CLUSTER_VIEW_WIDTH, DEFAULT_CLUSTER_VIEW_HEIGHT
 from .helm import get_charts_for_cluster
 from .k3d import K3dCluster
 from .k3d_controller import K3dController
-from .preferences import (SETTINGS_REG_CACHE)
+from .preferences import SETTINGS_REG_CACHE
 from .utils import parse_registry
-from .utils_ui import (SettingsPage,
-                       show_warning_dialog)
+from .utils_ui import SettingsPage, show_warning_dialog
 
 
 ###############################################################################
 # A view for a K3d cluster
 ###############################################################################
 
-class ClusterDialog(Gtk.Window):
 
-    def __init__(self, controller: K3dController,
-                 cluster: Optional[K3dCluster] = None):
+class ClusterDialog(Gtk.Window):
+    def __init__(self, controller: K3dController, cluster: Optional[K3dCluster] = None):
         super().__init__()
         self.set_default_size(DEFAULT_CLUSTER_VIEW_WIDTH, DEFAULT_CLUSTER_VIEW_HEIGHT)
         self.set_resizable(False)
@@ -86,9 +85,9 @@ class ClusterDialog(Gtk.Window):
         self.header = Gtk.HeaderBar()
         self.header.set_show_close_button(False)
         self.header.set_title(title)
-        self.header.get_style_context().remove_class('header-bar')
-        self.header.get_style_context().add_class('titlebar')
-        self.header.get_style_context().add_class('background')
+        self.header.get_style_context().remove_class("header-bar")
+        self.header.get_style_context().add_class("titlebar")
+        self.header.get_style_context().add_class("background")
         self.set_titlebar(self.header)
 
         # add a "Cancel" button
@@ -100,22 +99,30 @@ class ClusterDialog(Gtk.Window):
         if cluster is None:
             create_button = Gtk.Button(label="Create")
             create_button.connect("clicked", self.on_create_clicked)
-            create_button.get_style_context().add_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION)
+            create_button.get_style_context().add_class(
+                Gtk.STYLE_CLASS_SUGGESTED_ACTION
+            )
             self.header.pack_end(create_button)
         else:
             delete_button = Gtk.Button(label="Delete")
-            delete_button.get_style_context().add_class(Gtk.STYLE_CLASS_DESTRUCTIVE_ACTION)
+            delete_button.get_style_context().add_class(
+                Gtk.STYLE_CLASS_DESTRUCTIVE_ACTION
+            )
             delete_button.connect("clicked", self.on_delete_clicked)
             self.header.pack_end(delete_button)
 
             if not cluster.running:
                 switch_button = Gtk.Button(label="Start")
-                switch_button.get_style_context().add_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION)
+                switch_button.get_style_context().add_class(
+                    Gtk.STYLE_CLASS_SUGGESTED_ACTION
+                )
                 switch_button.connect("clicked", self.on_start_clicked)
                 self.header.pack_end(switch_button)
             elif self._controller.active != cluster:
                 switch_button = Gtk.Button(label="Switch to")
-                switch_button.get_style_context().add_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION)
+                switch_button.get_style_context().add_class(
+                    Gtk.STYLE_CLASS_SUGGESTED_ACTION
+                )
                 switch_button.connect("clicked", self.on_switch_clicked)
                 self.header.pack_end(switch_button)
 
@@ -128,7 +135,9 @@ class ClusterDialog(Gtk.Window):
         The "Create" button has been pressed in the "New Cluster" dialog
         """
         logging.info("[VIEW] Create clicked")
-        self.create_async(activate=True)  # we always switch to the new cluster on interactive creation
+        self.create_async(
+            activate=True
+        )  # we always switch to the new cluster on interactive creation
         self._settings.apply()
         self.close()
 
@@ -137,10 +146,12 @@ class ClusterDialog(Gtk.Window):
         The user has pressed the "Delete" button
         """
         logging.info("[VIEW] Delete clicked: showing confirmation dialog")
-        delete_diag = Granite.MessageDialog.with_image_from_icon_name("Destroy cluster?",
-                                                                      "Are you sure you want to destroy this cluster?",
-                                                                      "dialog-warning",
-                                                                      Gtk.ButtonsType.OK_CANCEL)
+        delete_diag = Granite.MessageDialog.with_image_from_icon_name(
+            "Destroy cluster?",
+            "Are you sure you want to destroy this cluster?",
+            "dialog-warning",
+            Gtk.ButtonsType.OK_CANCEL,
+        )
 
         button_delete = Gtk.Button(label="Delete")
         button_delete.get_style_context().add_class(Gtk.STYLE_CLASS_DESTRUCTIVE_ACTION)
@@ -204,7 +215,9 @@ class ClusterDialog(Gtk.Window):
 
     @property
     def cache_hub(self) -> bool:
-        return self._settings.get_safe_string(SETTINGS_KEY_REG_MODE) == SETTINGS_REG_CACHE
+        return (
+            self._settings.get_safe_string(SETTINGS_KEY_REG_MODE) == SETTINGS_REG_CACHE
+        )
 
     @property
     def api_server(self) -> str:
@@ -244,21 +257,22 @@ class ClusterDialog(Gtk.Window):
         """
         registry_name, registry_port = parse_registry(self.registry)
 
-        kwargs = {"name": self.cluster_name,
-                  "num_workers": self.num_workers,
-                  "use_registry": self.use_registry,
-                  "registry_name": registry_name,
-                  "registry_port": registry_port,
-                  "registry_volume": self.registry_volume,
-                  "cache_hub": self.cache_hub,
-                  "image": self.image,
-                  "api_server": self.api_server,
-                  "charts": get_charts_for_cluster(self),
-                  "server_args": self.server_args,
-                  "volumes": {},
-                  "post_create_hook": self.post_create_hook,
-                  "activate": activate
-                  }
+        kwargs = {
+            "name": self.cluster_name,
+            "num_workers": self.num_workers,
+            "use_registry": self.use_registry,
+            "registry_name": registry_name,
+            "registry_port": registry_port,
+            "registry_volume": self.registry_volume,
+            "cache_hub": self.cache_hub,
+            "image": self.image,
+            "api_server": self.api_server,
+            "charts": get_charts_for_cluster(self),
+            "server_args": self.server_args,
+            "volumes": {},
+            "post_create_hook": self.post_create_hook,
+            "activate": activate,
+        }
 
         logging.debug("[VIEW] Creating in a new thread...")
         thread = threading.Thread(target=self._controller.create, kwargs=kwargs)
@@ -274,7 +288,9 @@ class ClusterDialog(Gtk.Window):
         }
 
         logging.debug("[VIEW] Destroying in a new thread...")
-        thread = threading.Thread(target=self._controller.destroy, args=(self.cluster_name,), kwargs=kwargs)
+        thread = threading.Thread(
+            target=self._controller.destroy, args=(self.cluster_name,), kwargs=kwargs
+        )
         thread.daemon = True
         thread.start()
 
@@ -283,8 +299,11 @@ class ClusterDialog(Gtk.Window):
 # Layout
 ###############################################################################
 
+
 class ClusterPanedView(Gtk.Paned):
-    def __init__(self, settings: ApplicationSettings, cluster: Optional[K3dCluster] = None):
+    def __init__(
+        self, settings: ApplicationSettings, cluster: Optional[K3dCluster] = None
+    ):
         super().__init__()
         self.set_halign(Gtk.Align.FILL)
         self.set_valign(Gtk.Align.FILL)
@@ -293,9 +312,13 @@ class ClusterPanedView(Gtk.Paned):
         self._settings = settings
 
         self.general_settings = GeneralSettingsPage(cluster=cluster, settings=settings)
-        self.registry_settings = RegistrySettingsPage(cluster=cluster, settings=settings)
+        self.registry_settings = RegistrySettingsPage(
+            cluster=cluster, settings=settings
+        )
         self.network_settings = NetworkSettingsPage(cluster=cluster, settings=settings)
-        self.advanced_settings = AdvancedSettingsPage(cluster=cluster, settings=settings)
+        self.advanced_settings = AdvancedSettingsPage(
+            cluster=cluster, settings=settings
+        )
 
         self.stack = Gtk.Stack()
         self.stack.set_halign(Gtk.Align.FILL)
@@ -319,6 +342,7 @@ class ClusterPanedView(Gtk.Paned):
 # General settings
 ###############################################################################
 
+
 class GeneralSettingsPage(SettingsPage):
     _managed_settings = [
         "last-num-workers",
@@ -326,20 +350,23 @@ class GeneralSettingsPage(SettingsPage):
 
     def __init__(self, settings: ApplicationSettings, **kwargs):
         self.cluster = kwargs.pop("cluster", None)
-        super().__init__(settings=settings,
-                         activatable=False,
-                         description="General cluster properties",
-                         header="Cluster properties",
-                         icon_name="preferences-desktop",
-                         title="General",
-                         **kwargs)
+        super().__init__(
+            settings=settings,
+            activatable=False,
+            description="General cluster properties",
+            header="Cluster properties",
+            icon_name="preferences-desktop",
+            title="General",
+            **kwargs,
+        )
 
         # The cluster name label/entry
         self.cluster_name_entry = Gtk.Entry()
         self.cluster_name_entry.props.hexpand = False
         self.cluster_name_entry.set_tooltip_text(
             "The name assigned to the cluster. It must consist in alpha, "
-            "numbers and '-' and '_', like 'k3s-cluster-444'")
+            "numbers and '-' and '_', like 'k3s-cluster-444'"
+        )
         self.append_labeled_entry("Cluster Name:", self.cluster_name_entry)
 
         # Number of workers
@@ -349,9 +376,12 @@ class GeneralSettingsPage(SettingsPage):
             "The number of extra workers in the cluster. k3d will start just one "
             "master. This master will be used for running your workload as well, "
             "but you can start extra workers in cluster for having something "
-            "more similar to a production cluster.")
+            "more similar to a production cluster."
+        )
         self.num_workers.props.hexpand = False
-        self.append_labeled_entry("Number of workers", self.num_workers, setting="last-num-workers")
+        self.append_labeled_entry(
+            "Number of workers", self.num_workers, setting="last-num-workers"
+        )
 
         if self.cluster:
             box = Gtk.Box(spacing=6)
@@ -366,16 +396,18 @@ class GeneralSettingsPage(SettingsPage):
                 if self.cluster.check_dashboard():
                     self.cluster.open_dashboard()
                 else:
-                    show_warning_dialog(msg="No web service available",
-                                        explanation=f"There is no Dashboard or Ingress listening at\n\n"
-                                                    f"<i><tt>{self.cluster.dashboard_url}</tt></i>\n\n"
-                                                    "This usually means that\n\n"
-                                                    "a) no Dashboard has been installed.\n"
-                                                    "b) it was installed but it has not started yet.\n\n"
-                                                    "c) there is no Ingress controller running.\n\n"
-                                                    "d) the <i><tt>Ingress</tt></i> resource is incorrect or it uses the wrong controller.\n\n"
-                                                    "If you expected the Dashboard to be available, "
-                                                    "please wait and try again in a while...")
+                    show_warning_dialog(
+                        msg="No web service available",
+                        explanation=f"There is no Dashboard or Ingress listening at\n\n"
+                        f"<i><tt>{self.cluster.dashboard_url}</tt></i>\n\n"
+                        "This usually means that\n\n"
+                        "a) no Dashboard has been installed.\n"
+                        "b) it was installed but it has not started yet.\n\n"
+                        "c) there is no Ingress controller running.\n\n"
+                        "d) the <i><tt>Ingress</tt></i> resource is incorrect or it uses the wrong controller.\n\n"
+                        "If you expected the Dashboard to be available, "
+                        "please wait and try again in a while...",
+                    )
 
             if self.cluster.running:
                 open_button = Gtk.Button(label="Open")
@@ -401,6 +433,7 @@ class GeneralSettingsPage(SettingsPage):
 # Settings for the registry
 ###############################################################################
 
+
 class RegistrySettingsPage(SettingsPage):
     _managed_settings = [
         "last-enable-registry",
@@ -408,12 +441,14 @@ class RegistrySettingsPage(SettingsPage):
 
     def __init__(self, settings: ApplicationSettings, **kwargs):
         self.cluster = kwargs.pop("cluster", None)
-        super().__init__(settings=settings,
-                         activatable=False,
-                         description="Local registry",
-                         icon_name="folder-remote",
-                         title="Registry",
-                         **kwargs)
+        super().__init__(
+            settings=settings,
+            activatable=False,
+            description="Local registry",
+            icon_name="folder-remote",
+            title="Registry",
+            **kwargs,
+        )
 
         # The registry enabled/disabled
         self.enable_registry_checkbutton = Gtk.Switch()
@@ -421,10 +456,13 @@ class RegistrySettingsPage(SettingsPage):
             "When enabled, the cluster will be connected to a local Docker registry "
             "that will be created on-demand. You will be able to push to this "
             "registry from your laptop, and images will be available "
-            "in the Kubernetes cluster.")
-        self.append_labeled_entry("Enable local registry:",
-                                  self.enable_registry_checkbutton,
-                                  setting="last-enable-registry")
+            "in the Kubernetes cluster."
+        )
+        self.append_labeled_entry(
+            "Enable local registry:",
+            self.enable_registry_checkbutton,
+            setting="last-enable-registry",
+        )
 
         # Disable everything if the cluster already exists
         if self.cluster is not None:
@@ -437,6 +475,7 @@ class RegistrySettingsPage(SettingsPage):
 # Settings for the network
 ###############################################################################
 
+
 class NetworkSettingsPage(SettingsPage):
     _managed_settings = [
         "last-api-address",
@@ -444,12 +483,14 @@ class NetworkSettingsPage(SettingsPage):
 
     def __init__(self, settings: ApplicationSettings, **kwargs):
         self.cluster = kwargs.pop("cluster", None)
-        super().__init__(settings=settings,
-                         activatable=False,
-                         description="Network settings: ports, addresses...",
-                         icon_name="preferences-system-network",
-                         title="Network",
-                         **kwargs)
+        super().__init__(
+            settings=settings,
+            activatable=False,
+            description="Network settings: ports, addresses...",
+            icon_name="preferences-system-network",
+            title="Network",
+            **kwargs,
+        )
 
         # The API port
         self.api_binding_entry = Gtk.Entry()
@@ -458,9 +499,11 @@ class NetworkSettingsPage(SettingsPage):
         self.api_binding_entry.set_tooltip_text(
             "API server binding address and port. It can be "
             "[host:]port. (where a port 0 means a random port). "
-            "Examples: ':6443', '0.0.0.0:6443'")
-        self.append_labeled_entry("API address/port:", self.api_binding_entry,
-                                  setting="last-api-address")
+            "Examples: ':6443', '0.0.0.0:6443'"
+        )
+        self.append_labeled_entry(
+            "API address/port:", self.api_binding_entry, setting="last-api-address"
+        )
 
         # Disable everything if the cluster already exists
         if self.cluster is not None:
@@ -473,6 +516,7 @@ class NetworkSettingsPage(SettingsPage):
 # Advanced settings
 ###############################################################################
 
+
 class AdvancedSettingsPage(SettingsPage):
     _managed_settings = [
         "last-install-dashboard",
@@ -480,18 +524,25 @@ class AdvancedSettingsPage(SettingsPage):
 
     def __init__(self, settings: ApplicationSettings, **kwargs):
         self.cluster = kwargs.pop("cluster", None)
-        super().__init__(settings=settings,
-                         activatable=False,
-                         description="Advanced settings",
-                         icon_name="preferences-system",
-                         title="Advanced",
-                         **kwargs)
+        super().__init__(
+            settings=settings,
+            activatable=False,
+            description="Advanced settings",
+            icon_name="preferences-system",
+            title="Advanced",
+            **kwargs,
+        )
 
         # The dashboard enabled/disabled
         self.install_dashboard = Gtk.Switch()
         self.install_dashboard.set_tooltip_text(
-            "When enabled, installs the Dashboard after creating the cluster.")
-        self.append_labeled_entry("Install Dashboard:", self.install_dashboard, setting="last-install-dashboard")
+            "When enabled, installs the Dashboard after creating the cluster."
+        )
+        self.append_labeled_entry(
+            "Install Dashboard:",
+            self.install_dashboard,
+            setting="last-install-dashboard",
+        )
 
         # Disable everything if the cluster already exists
         if self.cluster is not None:

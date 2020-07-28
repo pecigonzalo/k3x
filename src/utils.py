@@ -39,10 +39,12 @@ from .config import DEFAULT_SCRIPTS_TIMEOUT
 # Errors
 ###############################################################################
 
+
 class ScriptError(Exception):
     """
     An error happened when running the script
     """
+
     pass
 
 
@@ -50,6 +52,7 @@ class RegistryInvalidError(Exception):
     """
     An error happened when parsing a registry
     """
+
     pass
 
 
@@ -63,9 +66,13 @@ def run_command_stdout(*args, **kwargs) -> Iterator[str]:
     stderr = kwargs.pop("stderr", subprocess.PIPE)
 
     if stdout != subprocess.PIPE:
-        logging.debug(f"[UTILS] Running process while redirecting output to {stdout.name}")
+        logging.debug(
+            f"[UTILS] Running process while redirecting output to {stdout.name}"
+        )
 
-    p = subprocess.Popen(args, stdout=stdout, stderr=stderr, universal_newlines=True, **kwargs)
+    p = subprocess.Popen(
+        args, stdout=stdout, stderr=stderr, universal_newlines=True, **kwargs
+    )
 
     if stdout == subprocess.PIPE:
         for stdout in iter(p.stdout.readline, ""):
@@ -75,8 +82,9 @@ def run_command_stdout(*args, **kwargs) -> Iterator[str]:
 
     return_code = p.wait()
     if return_code:
-        raise subprocess.CalledProcessError(returncode=return_code, cmd=args,
-                                            output="\n".join(p.stderr.readlines()))
+        raise subprocess.CalledProcessError(
+            returncode=return_code, cmd=args, output="\n".join(p.stderr.readlines())
+        )
 
 
 def run_hook_script(script: str, env: Dict[str, str]) -> None:
@@ -94,16 +102,20 @@ def run_hook_script(script: str, env: Dict[str, str]) -> None:
         raise ScriptError(f"{script} is not executable")
 
     try:
-        result = subprocess.run([script],
-                                shell=True,
-                                capture_output=False,
-                                timeout=DEFAULT_SCRIPTS_TIMEOUT,
-                                check=True,
-                                env=hook_env)
+        result = subprocess.run(
+            [script],
+            shell=True,
+            capture_output=False,
+            timeout=DEFAULT_SCRIPTS_TIMEOUT,
+            check=True,
+            env=hook_env,
+        )
     except subprocess.CalledProcessError as e:
         raise ScriptError(e)
     except subprocess.TimeoutExpired as e:
-        raise ScriptError(f"timeout {DEFAULT_SCRIPTS_TIMEOUT} expired when running {script}")
+        raise ScriptError(
+            f"timeout {DEFAULT_SCRIPTS_TIMEOUT} expired when running {script}"
+        )
     except Exception as e:
         logging.warning(f"Error when running script {script}: {e}")
         raise ScriptError(e)
@@ -124,8 +136,9 @@ def is_port_in_use(port: int) -> bool:
     Check if a porty is in use.
     """
     import socket
+
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        return s.connect_ex(('localhost', port)) == 0
+        return s.connect_ex(("localhost", port)) == 0
 
 
 def find_unused_port_in_range(start: int, end: int) -> Optional[int]:
@@ -133,7 +146,7 @@ def find_unused_port_in_range(start: int, end: int) -> Optional[int]:
     Return a port that is not used in the given range
     """
     rang = end - start
-    assert (rang > 0)
+    assert rang > 0
 
     # try random ports (for up to `rang` times)
     for _ in range(0, rang):
@@ -170,14 +183,17 @@ def parse_or_get_address(in_address: Optional[str], start: int, end: int) -> str
 # OS utils
 ###############################################################################
 
-def find_executable(executable: str, extra_paths: Optional[List[str]] = None) -> Optional[str]:
+
+def find_executable(
+    executable: str, extra_paths: Optional[List[str]] = None
+) -> Optional[str]:
     """
     Find the path fo4r the executable provided, or None if it cannot be found.
     """
     if extra_paths is None:
         extra_paths = []
 
-    paths = os.environ['PATH'].split(":")
+    paths = os.environ["PATH"].split(":")
     paths += extra_paths
 
     for path in paths:
@@ -219,6 +235,7 @@ def emit_in_main_thread(sender: GObject, signal_name: str, *args) -> None:
 ###############################################################################
 # parsers
 ###############################################################################
+
 
 def parse_registry(registry: str) -> Optional[Tuple[str, int]]:
     # verify that the registry specification is valid (ie, something like "registry:5000")

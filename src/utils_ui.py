@@ -38,11 +38,16 @@ from .utils import call_in_main_thread, running_on_main_thread
 # messages and notyfications
 ###############################################################################
 
-def show_notification(msg, header: str = None, icon: str = None,
-                      timeout: Optional[int] = None,
-                      action: Optional[Tuple[str, Callable]] = None,
-                      threaded: bool = True,
-                      notification=None):
+
+def show_notification(
+    msg,
+    header: str = None,
+    icon: str = None,
+    timeout: Optional[int] = None,
+    action: Optional[Tuple[str, Callable]] = None,
+    threaded: bool = True,
+    notification=None,
+):
     """
     Show a desktop notification
     """
@@ -84,7 +89,9 @@ def show_notification(msg, header: str = None, icon: str = None,
             logging.debug("[UI] Updating notification")
             n.update(header, msg, icon)
 
-        if not threaded:  # important: do not return anything if invoked with `call_in_main_thread`
+        if (
+            not threaded
+        ):  # important: do not return anything if invoked with `call_in_main_thread`
             return n
 
     if threaded:
@@ -94,15 +101,21 @@ def show_notification(msg, header: str = None, icon: str = None,
         return do_notify(notification)
 
 
-def show_error_dialog(msg: str, explanation: str, icon: str = "dialog-error",
-                      parent=None, ok_label: str = "Ok") -> None:
+def show_error_dialog(
+    msg: str,
+    explanation: str,
+    icon: str = "dialog-error",
+    parent=None,
+    ok_label: str = "Ok",
+) -> None:
     """
     Show a info/warning dialog, with just a "Close" button
     """
 
     def do_show():
         error_diag = Granite.MessageDialog.with_image_from_icon_name(
-            msg, "\n\n" + explanation, icon, Gtk.ButtonsType.CLOSE)
+            msg, "\n\n" + explanation, icon, Gtk.ButtonsType.CLOSE
+        )
 
         if parent is not None:
             error_diag.set_transient_for(parent)
@@ -140,10 +153,13 @@ def _link_gtk_entry_to_settings(settings, entry: Gtk.Entry, settings_id: str):
     if curr_value:
         entry.set_text(curr_value)
 
-    settings.connect(f"changed::{settings_id}",
-                     lambda s, k: entry.set_text(settings.get_safe_string(settings_id)))
-    entry.connect("changed",
-                  lambda e: settings.set_string(settings_id, str(entry.get_text())))
+    settings.connect(
+        f"changed::{settings_id}",
+        lambda s, k: entry.set_text(settings.get_safe_string(settings_id)),
+    )
+    entry.connect(
+        "changed", lambda e: settings.set_string(settings_id, str(entry.get_text()))
+    )
 
 
 def _link_gtk_switch_to_settings(settings, switch: Gtk.Switch, settings_id: str):
@@ -157,10 +173,13 @@ def _link_gtk_switch_to_settings(settings, switch: Gtk.Switch, settings_id: str)
     if curr_value:
         switch.set_state(curr_value)
 
-    settings.connect(f"changed::{settings_id}",
-                     lambda s, k: switch.set_state(settings.get_boolean(settings_id)))
-    switch.connect("state-set",
-                   lambda _sw, _state: settings.set_boolean(settings_id, _state))
+    settings.connect(
+        f"changed::{settings_id}",
+        lambda s, k: switch.set_state(settings.get_boolean(settings_id)),
+    )
+    switch.connect(
+        "state-set", lambda _sw, _state: settings.set_boolean(settings_id, _state)
+    )
 
 
 def _link_gtk_spinbutton_to_settings(settings, spin: Gtk.SpinButton, settings_id: str):
@@ -174,10 +193,13 @@ def _link_gtk_spinbutton_to_settings(settings, spin: Gtk.SpinButton, settings_id
     if curr_value:
         spin.set_value(settings.get_int(settings_id))
 
-    settings.connect(f"changed::{settings_id}",
-                     lambda s, k: spin.set_value(settings.get_int(settings_id)))
-    spin.connect("change-value",
-                 lambda e: settings.set_int(settings_id, spin.get_value()))
+    settings.connect(
+        f"changed::{settings_id}",
+        lambda s, k: spin.set_value(settings.get_int(settings_id)),
+    )
+    spin.connect(
+        "change-value", lambda e: settings.set_int(settings_id, spin.get_value())
+    )
 
 
 def _link_gtk_combobox_to_settings(settings, combo: Gtk.ComboBox, settings_id: str):
@@ -234,6 +256,7 @@ def link_widget_to_settings(settings, widget: Gtk.Widget, settings_id: str):
 ###############################################################################
 # settings UI
 ###############################################################################
+
 
 class SettingsPage(Granite.SimpleSettingsPage):
     """

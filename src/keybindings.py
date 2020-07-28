@@ -35,7 +35,16 @@ def parse_keystroke(shortcut: str) -> List[str]:
     """
     res = []
 
-    for sub in ["<Ctrl>", "<Ctr>", "<Control>", "Control", "<ctrl>", "<ctr>", "<control>", "control"]:
+    for sub in [
+        "<Ctrl>",
+        "<Ctr>",
+        "<Control>",
+        "Control",
+        "<ctrl>",
+        "<ctr>",
+        "<control>",
+        "control",
+    ]:
         if sub in shortcut:
             shortcut = shortcut.replace(sub, "")
             res += ["control"]
@@ -53,7 +62,16 @@ def parse_keystroke(shortcut: str) -> List[str]:
             res += ["shift"]
             break
 
-    for sub in ["<Meta>", "<meta>", "Meta", "meta", "<Super>", "<super>", "Super", "super"]:
+    for sub in [
+        "<Meta>",
+        "<meta>",
+        "Meta",
+        "meta",
+        "<Super>",
+        "<super>",
+        "Super",
+        "super",
+    ]:
         if sub in shortcut:
             shortcut = shortcut.replace(sub, "")
             res += ["super"]
@@ -66,8 +84,11 @@ def parse_keystroke(shortcut: str) -> List[str]:
 
 
 class Keybindings(object):
-
-    def __init__(self, settings: ApplicationSettings, mappings: Dict[str, Dict[str, Tuple[str, Callable]]]):
+    def __init__(
+        self,
+        settings: ApplicationSettings,
+        mappings: Dict[str, Dict[str, Tuple[str, Callable]]],
+    ):
         """
         Creates keybindings for shortcuts stores in GSettings.
         The list of settings cannot be changed after created.
@@ -82,6 +103,7 @@ class Keybindings(object):
 
         # see https://github.com/timeyyy/system_hotkey
         from system_hotkey import SystemHotkey
+
         self._keybinder = SystemHotkey()
         self.rebind_all()
 
@@ -98,16 +120,24 @@ class Keybindings(object):
                 parsed = parse_keystroke(shortcut)
 
                 if not callback:
-                    logging.warning(f"Empty callback for shortcut '{shortcut_id}': ignored")
+                    logging.warning(
+                        f"Empty callback for shortcut '{shortcut_id}': ignored"
+                    )
                     continue
 
                 if not shortcut:
-                    logging.warning(f"Empty shortcut for settings '{shortcut_id}': ignored")
+                    logging.warning(
+                        f"Empty shortcut for settings '{shortcut_id}': ignored"
+                    )
                     continue
 
                 logging.info(f"Binding '{shortcut_id}' -> '{callback.__name__}'")
 
-                if shortcut and shortcut in self._active_shortcuts and self._active_shortcuts[shortcut] != callback:
+                if (
+                    shortcut
+                    and shortcut in self._active_shortcuts
+                    and self._active_shortcuts[shortcut] != callback
+                ):
                     logging.debug(f"Removing current binding '{shortcut}'")
                     try:
                         self._keybinder.unregister(parsed)
@@ -117,12 +147,18 @@ class Keybindings(object):
                         continue
 
                 if shortcut and shortcut not in self._active_shortcuts:
-                    logging.info(f"Binding '{shortcut}' ({parsed}) to '{callback.__name__}'")
+                    logging.info(
+                        f"Binding '{shortcut}' ({parsed}) to '{callback.__name__}'"
+                    )
                     try:
                         self._keybinder.register(parsed, callback=callback)
                         self._active_shortcuts[shortcut] = callback
                     except Exception as e:
-                        logging.error(f"Could not bind {shortcut} to {callback.__name__}: {e}")
+                        logging.error(
+                            f"Could not bind {shortcut} to {callback.__name__}: {e}"
+                        )
                         continue
 
-                    self._settings.connect(f"changed::{shortcut_id}", lambda k, s: self.rebind_all())
+                    self._settings.connect(
+                        f"changed::{shortcut_id}", lambda k, s: self.rebind_all()
+                    )

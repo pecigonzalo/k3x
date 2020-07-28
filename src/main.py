@@ -27,11 +27,11 @@ import logging
 
 import gi
 
-gi.require_version('Gtk', '3.0')
-gi.require_version('Gdk', '3.0')
-gi.require_version('AppIndicator3', '0.1')
-gi.require_version('Granite', '1.0')
-gi.require_version('Notify', '0.7')
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+gi.require_version("AppIndicator3", "0.1")
+gi.require_version("Granite", "1.0")
+gi.require_version("Notify", "0.7")
 
 from gi.repository import Gtk, Gdk, AppIndicator3
 from gi.repository import Notify as notify
@@ -47,12 +47,13 @@ from .utils_ui import show_notification
 root = logging.getLogger()
 root.setLevel(DEFAULT_LOG_LEVEL)
 hdlr = root.handlers[0]
-fmt = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
+fmt = logging.Formatter(
+    "%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s"
+)
 hdlr.setFormatter(fmt)
 
 
 class Indicator(object):
-
     def __init__(self, version):
         self._version = version
 
@@ -62,9 +63,9 @@ class Indicator(object):
         logging.info(f"[MAIN] Using icon {icon}")
 
         logging.info("[MAIN] Starting appindicator.Indicator")
-        self._indicator = AppIndicator3.Indicator.new(APP_ID,
-                                                      icon,
-                                                      AppIndicator3.IndicatorCategory.SYSTEM_SERVICES)
+        self._indicator = AppIndicator3.Indicator.new(
+            APP_ID, icon, AppIndicator3.IndicatorCategory.SYSTEM_SERVICES
+        )
         self._indicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
         self._indicator.set_attention_icon("indicator-messages-new")
         # self.indicator.set_label("k3d", "")
@@ -81,28 +82,32 @@ class Indicator(object):
         self._controller = K3dController(settings=self._settings, docker=self._docker)
 
         logging.debug("[MAIN] Creating menu...")
-        self._menu = K3dvMenu(controller=self._controller,
-                              docker=self._docker,
-                              version=self._version)
+        self._menu = K3dvMenu(
+            controller=self._controller, docker=self._docker, version=self._version
+        )
         self._indicator.set_menu(self._menu)
         self._menu.connect("quit", self.on_quit)
 
         logging.debug("[MAIN] Creating bindings for keyboard shortcuts...")
         self._shortcuts = {
             "New cluster": {
-                "... with dialog":
-                    ("new-cluster", self._menu.on_new_cluster_keystroke),
-                "... with last settings":
-                    ("new-cluster-defaults", self._menu.on_new_cluster_defaults_keystroke),
-                "... with last settings, recycling cluster":
-                    ("new-cluster-cycle", self._menu.on_new_cluster_cycle_keystroke),
+                "... with dialog": ("new-cluster", self._menu.on_new_cluster_keystroke),
+                "... with last settings": (
+                    "new-cluster-defaults",
+                    self._menu.on_new_cluster_defaults_keystroke,
+                ),
+                "... with last settings, recycling cluster": (
+                    "new-cluster-cycle",
+                    self._menu.on_new_cluster_cycle_keystroke,
+                ),
             },
             "Current cluster": {
-                "Open dashboard":
-                    ("curr-cluster-dashboard", self._menu.on_cluster_dashboard_keystroke),
-                "Destroy":
-                    ("curr-cluster-destroy", None),
-            }
+                "Open dashboard": (
+                    "curr-cluster-dashboard",
+                    self._menu.on_cluster_dashboard_keystroke,
+                ),
+                "Destroy": ("curr-cluster-destroy", None),
+            },
         }
         self._menu.set_shortcuts(self._shortcuts)
 
@@ -115,8 +120,10 @@ class Indicator(object):
         # self._dbusmenuitem = self.indicator.get_property('dbus-menu-server').get_property('root-node')
         # self._conn = self._dbusmenuitem.connect('about-to-show', self.on_show)
 
-        show_notification(f"{APP_TITLE} has been started in the background. Check the k3d icon in the system tray",
-                          header=f"{APP_TITLE} started")
+        show_notification(
+            f"{APP_TITLE} has been started in the background. Check the k3d icon in the system tray",
+            header=f"{APP_TITLE} started",
+        )
 
     @property
     def visible(self):

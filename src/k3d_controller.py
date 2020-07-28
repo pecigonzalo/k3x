@@ -28,20 +28,22 @@ from typing import Optional
 from gi.repository import GObject
 
 from .config import ApplicationSettings, APP_ENV_PREFIX
-from .config import (DEFAULT_K3D_LIST_UPDATE_INTERVAL,
-                     SETTINGS_KEY_REG_ADDRESS)
+from .config import DEFAULT_K3D_LIST_UPDATE_INTERVAL, SETTINGS_KEY_REG_ADDRESS
 from .docker import DockerController
-from .k3d import (K3dCluster,
-                  run_k3d_command,
-                  NoKubeconfigObtainedError)
-from .kubectl import (merge_kubeconfigs_to,
-                      kubectl_set_current_context,
-                      kubectl_get_current_context)
-from .utils import (call_in_main_thread,
-                    emit_in_main_thread,
-                    call_periodically,
-                    truncate_file,
-                    run_hook_script, ScriptError)
+from .k3d import K3dCluster, run_k3d_command, NoKubeconfigObtainedError
+from .kubectl import (
+    merge_kubeconfigs_to,
+    kubectl_set_current_context,
+    kubectl_get_current_context,
+)
+from .utils import (
+    call_in_main_thread,
+    emit_in_main_thread,
+    call_periodically,
+    truncate_file,
+    run_hook_script,
+    ScriptError,
+)
 from .utils_ui import show_notification, show_error_dialog
 
 # the header/footer length in the "k3d list" output
@@ -53,6 +55,7 @@ K3D_LIST_FOOTER_LEN = 1
 # the k3d clusters controller
 ###############################################################################
 
+
 class K3dController(GObject.GObject):
     """
     A controller for the k3d clusters
@@ -61,13 +64,18 @@ class K3dController(GObject.GObject):
     __gsignals__ = {
         # a signal emmited when the cluster has changed
         "clusters-changed": (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, (int,)),
-
         # a signal emmited when the active cluster has changed
         # arguments: <cluster_name>
-        "change-current-cluster": (GObject.SIGNAL_RUN_CLEANUP, GObject.TYPE_NONE, (str,)),
+        "change-current-cluster": (
+            GObject.SIGNAL_RUN_CLEANUP,
+            GObject.TYPE_NONE,
+            (str,),
+        ),
     }
 
-    def __init__(self, settings: ApplicationSettings, docker: DockerController, **kwargs):
+    def __init__(
+        self, settings: ApplicationSettings, docker: DockerController, **kwargs
+    ):
         super().__init__(*kwargs)
         self.clusters = dict()
         self._settings = settings
@@ -108,13 +116,25 @@ class K3dController(GObject.GObject):
                 try:
                     logging.debug(f"[K3D] Parsed components: {components}")
                     name, image, status = components[0:3]
-                    logging.debug(f"[K3D] Parsed cluster info: name={name}, image={image}, status={status}")
-                    cs[name] = K3dCluster(settings=self._settings, docker=self._docker,
-                                          name=name, image=image, status=status)
+                    logging.debug(
+                        f"[K3D] Parsed cluster info: name={name}, image={image}, status={status}"
+                    )
+                    cs[name] = K3dCluster(
+                        settings=self._settings,
+                        docker=self._docker,
+                        name=name,
+                        image=image,
+                        status=status,
+                    )
                 except Exception as e:
-                    logging.exception(f"[K3D] PARSER ERROR !!!! Could not parse {line}: {e}")
-                    show_notification(f"Could not parse {line}: {e}", header="f{name} INTERNAL ERROR",
-                                      icon="dialog-error")
+                    logging.exception(
+                        f"[K3D] PARSER ERROR !!!! Could not parse {line}: {e}"
+                    )
+                    show_notification(
+                        f"Could not parse {line}: {e}",
+                        header="f{name} INTERNAL ERROR",
+                        icon="dialog-error",
+                    )
 
         return cs
 
@@ -136,22 +156,28 @@ class K3dController(GObject.GObject):
             self._active = None
             return
 
-        new_cluster_name = new_cluster.name if isinstance(new_cluster, K3dCluster) else new_cluster
+        new_cluster_name = (
+            new_cluster.name if isinstance(new_cluster, K3dCluster) else new_cluster
+        )
 
         if new_cluster_name not in self.clusters:
-            logging.info(f"[K3D] Active cluster '{new_cluster_name}' is not known: probably not a K3D cluster")
+            logging.info(
+                f"[K3D] Active cluster '{new_cluster_name}' is not known: probably not a K3D cluster"
+            )
             if self._active is not None:
                 emit_in_main_thread(self, "change-current-cluster", None)
             self._active = None
             return
 
-        has_changed = (new_cluster_name != self._active)
+        has_changed = new_cluster_name != self._active
 
         logging.info(f"[K3D] Activating cluster '{new_cluster_name}'")
         try:
             kubectl_set_current_context(new_cluster_name, kubeconfig=self.kubeconfig)
         except Exception as e:
-            logging.exception(f"[K3D] When activating cluster '{new_cluster_name}': {e}")
+            logging.exception(
+                f"[K3D] When activating cluster '{new_cluster_name}': {e}"
+            )
         else:
             self._active = self.get_cluster_by_name(new_cluster_name)
 
@@ -173,7 +199,9 @@ class K3dController(GObject.GObject):
             context = ssl._create_unverified_context()
             registry_address = self._settings.get_safe_string(SETTINGS_KEY_REG_ADDRESS)
             registry_catalog_url = f"http://{registry_address}/_v2/catalog"
-            return urllib.request.urlopen(registry_catalog_url, context=context).getcode()
+            return urllib.request.urlopen(
+                registry_catalog_url, context=context
+            ).getcode()
         except urllib.error.URLError as e:
             logging.exception(f"Error when checking {registry_catalog_url}: {e}")
             return False
@@ -188,33 +216,43 @@ class K3dController(GObject.GObject):
         post_create_hook = kwargs.pop("post_create_hook", None)
 
         if not self._docker.valid:
-            show_error_dialog(msg=f"Could not connect to Docker at {self._docker.docker_host}",
-                              explanation=f"Please check that\n\n"
-                                          "1) Docker is installed and running\n"
-                                          f"3) '<tt>{self._docker.docker_host}</tt>' exists and is accessible\n"
-                                          "3) the Docker URL in the <b><i>Preferences</i></b> is correct.")
+            show_error_dialog(
+                msg=f"Could not connect to Docker at {self._docker.docker_host}",
+                explanation=f"Please check that\n\n"
+                "1) Docker is installed and running\n"
+                f"3) '<tt>{self._docker.docker_host}</tt>' exists and is accessible\n"
+                "3) the Docker URL in the <b><i>Preferences</i></b> is correct.",
+            )
             return None
 
         try:
             cluster = K3dCluster(settings=self._settings, docker=self._docker, **kwargs)
         except Exception as e:
-            show_notification(f"Cluster {name} creation FAILED: {e}.", header="f{name} ERROR",
-                              icon="dialog-error")
+            show_notification(
+                f"Cluster {name} creation FAILED: {e}.",
+                header="f{name} ERROR",
+                icon="dialog-error",
+            )
             return None
 
-        cluster.show_notification(f"{cluster.name} is being created in the background",
-                                  header=f"{cluster.name} CREATING...")
+        cluster.show_notification(
+            f"{cluster.name} is being created in the background",
+            header=f"{cluster.name} CREATING...",
+        )
         try:
             cluster.create()
         except Exception as e:
-            cluster.show_notification(f"Cluster {name} creation FAILED: {e}.",
-                                      header="f{name} ERROR",
-                                      icon="dialog-error")
+            cluster.show_notification(
+                f"Cluster {name} creation FAILED: {e}.",
+                header="f{name} ERROR",
+                icon="dialog-error",
+            )
         else:
             cluster.show_notification(
                 f"{name} has been successfully CREATED. Dashboard will be available at {cluster.dashboard_url}",
                 header=f"{name} CREATED",
-                action=("Dashboard", cluster.open_dashboard))
+                action=("Dashboard", cluster.open_dashboard),
+            )
         finally:
             # if `activate`, use the newly created cluster as the active one
             active_cluster = None
@@ -224,16 +262,23 @@ class K3dController(GObject.GObject):
             self.refresh(active_cluster=active_cluster)
 
         if post_create_hook:
-            cluster.show_notification(f"Running post-creation script '{post_create_hook}' in the background.",
-                                      header=f"Running post-create script")
+            cluster.show_notification(
+                f"Running post-creation script '{post_create_hook}' in the background.",
+                header=f"Running post-create script",
+            )
             try:
                 env = cluster.script_environment
                 env[f"{APP_ENV_PREFIX}_ACTION"] = "create"
                 run_hook_script(post_create_hook, env=env)
             except ScriptError as e:
-                show_notification(f"Cluster {name} post-creation script failed: {e}.",
-                                  header=f"Script error", icon="dialog-error")
-                logging.exception(f"Cluster {name} post-creation script '{post_create_hook}' failed: {e}.")
+                show_notification(
+                    f"Cluster {name} post-creation script failed: {e}.",
+                    header=f"Script error",
+                    icon="dialog-error",
+                )
+                logging.exception(
+                    f"Cluster {name} post-creation script '{post_create_hook}' failed: {e}."
+                )
 
         return cluster
 
@@ -249,32 +294,48 @@ class K3dController(GObject.GObject):
 
         post_destroy_hook = kwargs.pop("post_destroy_hook", None)
 
-        cluster.show_notification(f"{cluster.name} is being destroyed in the background",
-                                  header=f"{cluster.name} DESTROYING...")
+        cluster.show_notification(
+            f"{cluster.name} is being destroyed in the background",
+            header=f"{cluster.name} DESTROYING...",
+        )
         if cluster:
             try:
                 cluster.destroy()
             except Exception as e:
-                cluster.show_notification(f"Cluster {name} destruction failed: {e}.",
-                                          header=f"{name} ERROR", icon="dialog-error")
+                cluster.show_notification(
+                    f"Cluster {name} destruction failed: {e}.",
+                    header=f"{name} ERROR",
+                    icon="dialog-error",
+                )
             else:
-                cluster.show_notification(f"{name} has been destroyed.", header=f"{name} DESTROYED")
+                cluster.show_notification(
+                    f"{name} has been destroyed.", header=f"{name} DESTROYED"
+                )
             finally:
                 self.refresh()
 
             if post_destroy_hook:
-                cluster.show_notification(f"Running post-destruction script '{post_destroy_hook}' in the background.",
-                                          header=f"Running post-destroy script")
+                cluster.show_notification(
+                    f"Running post-destruction script '{post_destroy_hook}' in the background.",
+                    header=f"Running post-destroy script",
+                )
                 try:
                     env = cluster.script_environment
                     env[f"{APP_ENV_PREFIX}_ACTION"] = "destroy"
                     run_hook_script(post_destroy_hook, env=env)
                 except ScriptError as e:
-                    cluster.show_notification(f"Cluster {name} post-destruction script failed: {e}.",
-                                              header=f"Script error", icon="dialog-error")
-                    logging.exception(f"Cluster {name} post-creation script '{post_destroy_hook}' failed: {e}.")
+                    cluster.show_notification(
+                        f"Cluster {name} post-destruction script failed: {e}.",
+                        header=f"Script error",
+                        icon="dialog-error",
+                    )
+                    logging.exception(
+                        f"Cluster {name} post-creation script '{post_destroy_hook}' failed: {e}."
+                    )
 
-    def refresh(self, initial=False, active_cluster: Optional[K3dCluster] = None) -> bool:
+    def refresh(
+        self, initial=False, active_cluster: Optional[K3dCluster] = None
+    ) -> bool:
         # more advanced setup:
         #
         # NAME=$(kubectl --kubeconfig=$1 config get-contexts -o name | head -n 1)
@@ -294,33 +355,46 @@ class K3dController(GObject.GObject):
             # same cluster again... in case there was an active cluster
             cluster_name_to_activate: Optional[str] = None
             if active_cluster is not None:
-                logging.debug(f"[K3D] Will activate cluster forced cluster {active_cluster.name} later on...")
+                logging.debug(
+                    f"[K3D] Will activate cluster forced cluster {active_cluster.name} later on..."
+                )
                 cluster_name_to_activate = active_cluster.name
             elif initial:
-                cluster_name_to_activate = kubectl_get_current_context(kubeconfig=self.kubeconfig)
+                cluster_name_to_activate = kubectl_get_current_context(
+                    kubeconfig=self.kubeconfig
+                )
                 logging.debug(
-                    f"[K3D] First time we refresh KUBECONFIG: will save currently active cluster {cluster_name_to_activate}...")
+                    f"[K3D] First time we refresh KUBECONFIG: will save currently active cluster {cluster_name_to_activate}..."
+                )
             elif len(self.clusters) > 0 and self.active is not None:
                 cluster_name_to_activate = self.active.name
-                logging.debug(f"[K3D] Saving current cluster {cluster_name_to_activate} for later on...")
+                logging.debug(
+                    f"[K3D] Saving current cluster {cluster_name_to_activate} for later on..."
+                )
 
             changes = False
             try:
-                if set(latest_clusters.keys()) != set(self.clusters.keys()) or \
-                        not os.path.exists(self.kubeconfig) or \
-                        initial:
+                if (
+                    set(latest_clusters.keys()) != set(self.clusters.keys())
+                    or not os.path.exists(self.kubeconfig)
+                    or initial
+                ):
 
                     changes = True
 
                     cl = len(latest_clusters)
-                    logging.info(f"[K3D] Regenerating kubeconfig at {self.kubeconfig} ({cl} clusters)")
+                    logging.info(
+                        f"[K3D] Regenerating kubeconfig at {self.kubeconfig} ({cl} clusters)"
+                    )
 
                     if len(latest_clusters) > 0:
                         clusters_kubeconfigs = []
                         for c in latest_clusters.values():
                             kubeconfig = c.kubeconfig
                             if not kubeconfig:
-                                raise NoKubeconfigObtainedError(f"could not get a KUBECONFIG for {c.name}")
+                                raise NoKubeconfigObtainedError(
+                                    f"could not get a KUBECONFIG for {c.name}"
+                                )
                             clusters_kubeconfigs.append(kubeconfig)
 
                         merge_kubeconfigs_to(clusters_kubeconfigs, self.kubeconfig)
@@ -333,7 +407,10 @@ class K3dController(GObject.GObject):
                 self.clusters = latest_clusters
 
             # update the currently active cluster
-            if cluster_name_to_activate is not None and cluster_name_to_activate in self.clusters:
+            if (
+                cluster_name_to_activate is not None
+                and cluster_name_to_activate in self.clusters
+            ):
                 self.active = cluster_name_to_activate
             else:
                 self.active = kubectl_get_current_context(kubeconfig=self.kubeconfig)

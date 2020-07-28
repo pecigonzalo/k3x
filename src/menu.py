@@ -27,22 +27,26 @@ import logging
 from gi.repository import Gtk, GdkPixbuf, GObject
 
 from .cluster_view import ClusterDialog
-from .config import (APP_ID,
-                     APP_DESCRIPTION,
-                     APP_TITLE,
-                     APP_MAIN_AUTHORS,
-                     APP_DOCUMENTERS,
-                     APP_URL,
-                     APP_COPYRIGHT,
-                     APP_ARTISTS_CREDITS)
+from .config import (
+    APP_ID,
+    APP_DESCRIPTION,
+    APP_TITLE,
+    APP_MAIN_AUTHORS,
+    APP_DOCUMENTERS,
+    APP_URL,
+    APP_COPYRIGHT,
+    APP_ARTISTS_CREDITS,
+)
 from .config import ApplicationSettings
 from .k3d import K3dError
 from .k3d_controller import K3dController
 from .preferences import PreferencesDialog
-from .utils import (emit_in_main_thread,
-                    call_periodically,
-                    call_in_main_thread,
-                    running_on_main_thread)
+from .utils import (
+    emit_in_main_thread,
+    call_periodically,
+    call_in_main_thread,
+    running_on_main_thread,
+)
 from .utils_ui import show_notification, show_error_dialog
 
 # menu update interval (in milli-seconds)
@@ -59,7 +63,7 @@ KEYBOARD_SHORTCUTS_WINDOW_HEIGHT = 300
 
 
 class K3dvMenu(Gtk.Menu):
-    __gtype_name__ = 'K3dvMenu'
+    __gtype_name__ = "K3dvMenu"
 
     __gsignals__ = {
         # a signal emmited when we want to quit
@@ -77,11 +81,16 @@ class K3dvMenu(Gtk.Menu):
         self._version = version
 
         self._controller.connect("clusters-changed", self.on_clusters_changed)
-        self._controller.connect("change-current-cluster", self.on_active_cluster_changed)
+        self._controller.connect(
+            "change-current-cluster", self.on_active_cluster_changed
+        )
 
         self.default_entries = {
             "New cluster...": (self.on_new_cluster_clicked, None),
-            "New cluster with last settings": (self.on_new_cluster_defaults_clicked, None),
+            "New cluster with last settings": (
+                self.on_new_cluster_defaults_clicked,
+                None,
+            ),
             "Preferences": (self.on_preferences_clicked, None),
             "Keyboard shortcuts": (self.on_shortcuts_clicked, None),
             "About": (self.on_about_clicked, None),
@@ -92,7 +101,9 @@ class K3dvMenu(Gtk.Menu):
         for label, info in self.default_entries.items():
             connection, icon = info
             if icon is not None:
-                entry = Gtk.ImageMenuItem.new_from_stock("preferences-system-symbolic", None)
+                entry = Gtk.ImageMenuItem.new_from_stock(
+                    "preferences-system-symbolic", None
+                )
             else:
                 entry = Gtk.MenuItem(label=label)
             entry.connect("activate", connection)
@@ -125,9 +136,15 @@ class K3dvMenu(Gtk.Menu):
 
             # remove all the entries in the menu
             for label, child in children.items():
-                if (label in current_clusters.keys()) or (label in self.default_entries):
+                if (label in current_clusters.keys()) or (
+                    label in self.default_entries
+                ):
                     continue
-                if isinstance(child, Gtk.SeparatorMenuItem) and len(current_clusters) > 0:
+
+                if (
+                    isinstance(child, Gtk.SeparatorMenuItem)
+                    and len(current_clusters) > 0
+                ):
                     continue
 
                 logging.info(f"[MENU] Menu item '{label}' is no longer valid: removing")
@@ -138,13 +155,18 @@ class K3dvMenu(Gtk.Menu):
                     separator = Gtk.SeparatorMenuItem()
                     self.append(separator)
 
-                logging.info("[MENU] Showing {} clusters in the menu".format(len(current_clusters)))
+                logging.info(
+                    "[MENU] Showing {} clusters in the menu".format(
+                        len(current_clusters)
+                    )
+                )
                 # show an entry for each existing k3d cluster
                 for cluster in current_clusters.values():
                     if cluster.name not in children:
                         cluster_menu_item = Gtk.MenuItem(label=cluster.name)
-                        cluster_menu_item.connect("activate",
-                                                  self.on_cluster_clicked, cluster)
+                        cluster_menu_item.connect(
+                            "activate", self.on_cluster_clicked, cluster
+                        )
                         logging.info(f"[MENU] Adding menu entry for {cluster.name}")
                         self.append(cluster_menu_item)
 
@@ -193,11 +215,15 @@ class K3dvMenu(Gtk.Menu):
         new_cluster.create_async(activate=True)
 
     def on_new_cluster_defaults_keystroke(self, *args):
-        logging.info(f"[MENU] Creating new cluster with defaults (from keystroke): {args}")
+        logging.info(
+            f"[MENU] Creating new cluster with defaults (from keystroke): {args}"
+        )
         call_in_main_thread(self.on_new_cluster_defaults_clicked)
 
     def on_new_cluster_cycle(self, *args):
-        logging.info(f"[MENU] Creating new cluster with defaults and recycling an old one: {args}")
+        logging.info(
+            f"[MENU] Creating new cluster with defaults and recycling an old one: {args}"
+        )
         assert running_on_main_thread()
 
         # choose a random cluster to remove
@@ -215,11 +241,15 @@ class K3dvMenu(Gtk.Menu):
             for c in sorted(clusters.values(), key=lambda x: x.docker_created):
                 if current is None or c.name != current.name:
                     to_activate_name = c.name
-                    logging.debug(f"[MENU] Will activate '{to_activate_name}' (created at {c.docker_created})")
+                    logging.debug(
+                        f"[MENU] Will activate '{to_activate_name}' (created at {c.docker_created})"
+                    )
                     break
 
             if to_activate_name is not None:
-                logging.debug(f"[MENU] Activating (random) cluster '{to_activate_name}'")
+                logging.debug(
+                    f"[MENU] Activating (random) cluster '{to_activate_name}'"
+                )
                 self._controller.active = to_activate_name
 
         # create a new cluster in the background
@@ -228,19 +258,25 @@ class K3dvMenu(Gtk.Menu):
         new_cluster.create_async(activate=False)
 
     def on_new_cluster_cycle_keystroke(self, *args):
-        logging.info(f"[MENU] Creating new cluster with defaults and recycling an old one (from keystroke): {args}")
+        logging.info(
+            f"[MENU] Creating new cluster with defaults and recycling an old one (from keystroke): {args}"
+        )
         call_in_main_thread(self.on_new_cluster_cycle)
 
     def on_cluster_dashboard_keystroke(self, *args):
         active_cluster = self._controller.active
         try:
             url = active_cluster.dashboard_url
-            active_cluster.show_notification(f"Opening dashboard for {active_cluster} at {url}.",
-                                             header=f"Opening dashboard for {active_cluster}")
+            active_cluster.show_notification(
+                f"Opening dashboard for {active_cluster} at {url}.",
+                header=f"Opening dashboard for {active_cluster}",
+            )
             active_cluster.open_dashboard()
         except K3dError as e:
-            show_error_dialog(f"Dashboard error",
-                              explanation=f"When opening dashboard for {active_cluster}: {e}.")
+            show_error_dialog(
+                f"Dashboard error",
+                explanation=f"When opening dashboard for {active_cluster}: {e}.",
+            )
 
     def on_preferences_clicked(self, *args):
         """
@@ -266,7 +302,9 @@ class K3dvMenu(Gtk.Menu):
         """
         Callback invoked when the list of clusters has changed.
         """
-        logging.debug("[MENU] Received signal about changes in clusters: will refresh menu now...")
+        logging.debug(
+            "[MENU] Received signal about changes in clusters: will refresh menu now..."
+        )
         self.refresh(forced=True)
 
     def on_active_cluster_changed(self, sender, cluster_name):
@@ -276,11 +314,14 @@ class K3dvMenu(Gtk.Menu):
         if cluster_name is not None:
             assert running_on_main_thread()
             assert self._controller.active is not None
-            self._controller.active.show_notification(f"{cluster_name} is the new active cluster.",
-                                                      header=f"{cluster_name} ACTIVE")
+            self._controller.active.show_notification(
+                f"{cluster_name} is the new active cluster.",
+                header=f"{cluster_name} ACTIVE",
+            )
         else:
-            show_notification(f"No cluster is currently active.",
-                              header=f"No cluster active")
+            show_notification(
+                f"No cluster is currently active.", header=f"No cluster active"
+            )
 
     def on_quit_clicked(self, *args):
         """
@@ -296,6 +337,7 @@ class K3dvMenu(Gtk.Menu):
 # The "Shortcuts" dialog
 ###############################################################################
 
+
 class ShortcutsOverlay(Gtk.ShortcutsWindow):
     """ Window that displays the shortcuts for the active application """
 
@@ -307,8 +349,9 @@ class ShortcutsOverlay(Gtk.ShortcutsWindow):
         if app_shortcuts is None:
             app_shortcuts = {}
 
-        self.set_default_size(KEYBOARD_SHORTCUTS_WINDOW_WIDTH,
-                              KEYBOARD_SHORTCUTS_WINDOW_HEIGHT)
+        self.set_default_size(
+            KEYBOARD_SHORTCUTS_WINDOW_WIDTH, KEYBOARD_SHORTCUTS_WINDOW_HEIGHT
+        )
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_modal(True)
         self.set_skip_taskbar_hint(True)
@@ -351,13 +394,14 @@ class ShortcutsOverlay(Gtk.ShortcutsWindow):
 # The "About" dialog
 ###############################################################################
 
+
 class AboutDialog(Gtk.AboutDialog):
     def __init__(self, version):
         Gtk.AboutDialog.__init__(self, modal=True)
         try:
             buttons = list(self.get_action_area())
             close_button = buttons[2]
-            close_button.connect('clicked', lambda _: self.destroy())
+            close_button.connect("clicked", lambda _: self.destroy())
             license_button = buttons[1]
             license_button.set_no_show_all(True)
         except IndexError:
@@ -378,12 +422,14 @@ class AboutDialog(Gtk.AboutDialog):
         icon_path = ApplicationSettings.get_source_app_icon()
         if icon_path:
             logo_pixbuf = GdkPixbuf.Pixbuf.new_from_file(icon_path)
-            self.set_logo(logo_pixbuf.scale_simple(200, 200, GdkPixbuf.InterpType.BILINEAR))
+            self.set_logo(
+                logo_pixbuf.scale_simple(200, 200, GdkPixbuf.InterpType.BILINEAR)
+            )
         else:
             self.set_logo(None)
 
         self.set_authors(APP_MAIN_AUTHORS)
         self.set_documenters(APP_DOCUMENTERS)
         self.set_website(APP_URL)
-        self.set_website_label('GitHub')
+        self.set_website_label("GitHub")
         self.show_all()

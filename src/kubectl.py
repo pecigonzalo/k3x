@@ -61,7 +61,7 @@ def merge_kubeconfigs_to(kubeconfigs: List[str], dest: str):
     kubeconfig_str = ":".join(kubeconfigs)
 
     try:
-        with open(dest, 'r') as in_kubeconfig:
+        with open(dest, "r") as in_kubeconfig:
             current_kubeconfig_contents = str(in_kubeconfig.read())
     except FileNotFoundError:
         current_kubeconfig_contents = ""
@@ -69,14 +69,22 @@ def merge_kubeconfigs_to(kubeconfigs: List[str], dest: str):
     env = os.environ.copy()
     env["KUBECONFIG"] = kubeconfig_str
     args = [kubectl_exe, "config", "view", "--merge", "--flatten"]
-    latest_kubeconfig_contents = str(subprocess.check_output(args, env=env, universal_newlines=True))
+    latest_kubeconfig_contents = str(
+        subprocess.check_output(args, env=env, universal_newlines=True)
+    )
 
     if latest_kubeconfig_contents.strip() != current_kubeconfig_contents.strip():
-        gen_diff = difflib.unified_diff(current_kubeconfig_contents.splitlines(keepends=True),
-                                        latest_kubeconfig_contents.splitlines(keepends=True))
+        gen_diff = difflib.unified_diff(
+            current_kubeconfig_contents.splitlines(keepends=True),
+            latest_kubeconfig_contents.splitlines(keepends=True),
+        )
         diff_lines = [line.strip() for line in gen_diff]
 
-        logging.debug("[KUBECTL] KUBECONFIG has {} changes. Printing first lines:".format(len(diff_lines)))
+        logging.debug(
+            "[KUBECTL] KUBECONFIG has {} changes. Printing first lines:".format(
+                len(diff_lines)
+            )
+        )
         for line in diff_lines[:8]:
             logging.debug(f"[KUBECTL] [DIFF]   {line}")
 
@@ -88,7 +96,9 @@ def merge_kubeconfigs_to(kubeconfigs: List[str], dest: str):
         logging.debug("[KUBECTL] No changes in KUBECONFIG: no need to overwrite it.")
 
 
-def kubectl_apply_manifest(manifest: str, kubeconfig: Optional[str] = None, **kwargs) -> Iterator[str]:
+def kubectl_apply_manifest(
+    manifest: str, kubeconfig: Optional[str] = None, **kwargs
+) -> Iterator[str]:
     """
     Apply a manifest with `kubectl apply -f` (using a temporary file)
     """
@@ -109,7 +119,9 @@ def kubectl_get_current_context(kubeconfig: Optional[str] = None) -> Optional[st
     try:
         lines = [line for line in run_kubectl_command(*args, kubeconfig=kubeconfig)]
     except subprocess.CalledProcessError as e:
-        logging.warning(f"No current context obtained with kubectl (maybe no clusters exist): {e}")
+        logging.warning(
+            f"No current context obtained with kubectl (maybe no clusters exist): {e}"
+        )
         return None
 
     return lines[0]
